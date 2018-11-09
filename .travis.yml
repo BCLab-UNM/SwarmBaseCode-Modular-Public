@@ -20,9 +20,5 @@ before_install:
 script:
   - source /opt/ros/$ros_distro/setup.bash
   - catkin build
-  - ./run_tests.sh
-#  - roscore &
-#  - catkin run_tests
-#  - source devel/setup.bash
-#  - devel/lib/behaviours/behaviour_test
-   
+  - catkin run_tests
+  - catkin_test_results

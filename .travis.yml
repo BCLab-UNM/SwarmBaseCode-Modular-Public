@@ -22,4 +22,3 @@ script:
   - catkin build
   - catkin run_tests
   - catkin_test_results
-

@@ -66,6 +66,10 @@ The ROS USB camera package:
 ```
 sudo apt install ros-kinetic-usb-cam
 ```
+If you intend to use the rosbridge tools to run robots independently of the laptop you will need to install rosbridge:
+```
+sudo apt install ros-kinetic-rosbridge-server
+```
 
 ##### 3. Install additional Gazebo plugins
 
@@ -285,6 +289,8 @@ Replace ~/SwarmBaseCode-ROS with the path to your git repository.
 10. Enter ```-DCMAKE_INSTALL_PREFIX=../install -DCATKIN_DEVEL_PREFIX=../devel``` in the CMake arguments text box.
 
 11. Press the run cmake button.
+
+12. Press the "Finish" button.
 
 ~~11. Click the "Edit" toolbox icon on the left.~~
 

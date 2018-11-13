@@ -1,4 +1,4 @@
-# SwarmBaseCode-ROS
+# SwarmBaseCode-Modular
 
 This repository is a ROS (Robot Operating System) controller framework for the Swarmie robots used in the [NASA Swarmathon](http://www.nasaswarmathon.com), a national swarm robotics competition. 
 
@@ -19,6 +19,46 @@ This repository contains:
 Be: sure you are using the latest drivers for your video card using the "additional drivers tool" in Ubuntu. Gazebo client often does not do well with the open source drivers.
 
 ![Alt text](https://github.com/BCLab-UNM/SwarmBaseCode-ROS/blob/master/readmeImages/InstallGraphics.png "Additional Drivers")
+
+### Description of Behavior architecture
+
+The architecure for the behaviours package (the package that controlls
+the serach/pickup/dropoff/etc functionality of the robots) has beed
+designed with two goals:
+
+1. Make the behavior of the robots testable
+   * Isolate individual behaviors into independently testable components
+   * Write unit tests for these commponents using google-test
+2. Make it easier to add and remove behaviors
+   * This follows almost immediately from the previous goal of isolation
+
+There are two main components to the architecture: the main loop, the behavior stack
+and the robot interface.
+
+#### Main Loop
+At a rate of 30Hz the robot interface is polled for new sensor
+readings. The current readings are then passed to the behavioir stack
+which returns an action to be executed by the robot.
+
+#### Robot Interface
+This defines the interface between the behavior stack and the
+robots. All ROS topics are isolated in this part of the code and a
+clean interface to the sensors is exposed via the `SwarmieSensors`
+class. The interface to robot actuators is provided by the
+`SwarmieAction` class.
+
+#### Behavior Stack
+This is the core of the new architecture. Behaviors are organized in a
+stack from low-level to high-level. The current sensor readings and
+the action that the lower level behavior wants to take are passed to
+each `Behavior` in the stack. That behavior returns a `SwarmieAction`
+it would like to perform (either incorporating the previous action or
+ignoring it). If it is the last behavior then the action is returned
+to the robot interface as described above.
+
+To add behaviors to the stack users add a call to
+`BehaviorManager::RegisterBehavior`. Behaviors are placed into the
+stack in the order of these calls.
 
 ### Quick Start Installation Guide
 

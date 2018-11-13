@@ -20,7 +20,7 @@ Be: sure you are using the latest drivers for your video card using the "additio
 
 ![Alt text](https://github.com/BCLab-UNM/SwarmBaseCode-ROS/blob/master/readmeImages/InstallGraphics.png "Additional Drivers")
 
-### Description of Behavior architecture
+## Description of Behavior architecture
 
 The architecure for the behaviours package (the package that controlls
 the serach/pickup/dropoff/etc functionality of the robots) has beed
@@ -35,19 +35,20 @@ designed with two goals:
 There are two main components to the architecture: the main loop, the behavior stack
 and the robot interface.
 
-#### Main Loop
+### Main Loop
 At a rate of 30Hz the robot interface is polled for new sensor
-readings. The current readings are then passed to the behavioir stack
-which returns an action to be executed by the robot.
+readings. The current readings are then passed to the behavior stack
+which returns an action to be executed by the robot. The main loop is
+in `src/behaviours/src/Behavior.cpp`.
 
-#### Robot Interface
+### Robot Interface
 This defines the interface between the behavior stack and the
 robots. All ROS topics are isolated in this part of the code and a
 clean interface to the sensors is exposed via the `SwarmieSensors`
 class. The interface to robot actuators is provided by the
 `SwarmieAction` class.
 
-#### Behavior Stack
+### Behavior Stack
 This is the core of the new architecture. Behaviors are organized in a
 stack from low-level to high-level. The current sensor readings and
 the action that the lower level behavior wants to take are passed to
@@ -57,14 +58,37 @@ ignoring it). If it is the last behavior then the action is returned
 to the robot interface as described above.
 
 To add behaviors to the stack users add a call to
-`BehaviorManager::RegisterBehavior`. Behaviors are placed into the
+`BehaviorManager::RegisterBehavior` in the main loop (where the
+behavior manager is instantiated). Behaviors are placed into the
 stack in the order of these calls.
 
-### Quick Start Installation Guide
+#### Behavior Interface
+To implement a new Behavior Extend the `Behavior` class (defined in
+`include/BehaviorManager.hpp`). This interface provides two functions
+that can be overridden 
+* `Behavior::Update` takes the current sensor readings and the action
+  the lower-level behavior has requested. Use this method to update
+  the action that the behavior should take. The value of the
+  lower-level action can be incorporated into the action the behavior
+  takes, ignored completely, or passed up to the next in the stack. To
+  take an action the behavior should assign the action it wants to
+  take to the `_action` variable.
+* `Behavior::Reset` should reset the current state of the behavior to
+  the state it had at initialization.
+
+A behavior can explicitly subsume a lower level behavior by calling
+`Behavior::Subsumes` from the main loop. This allows higher level
+behaviors to reset lower level's of the stack or bypass the behavior
+taken by intervening layers. For instance a behavior for dropping off
+a cube will want to take the "avoid obstacle" action in to account
+from layer 1, but ignore the "avoid nest" action from layer 2. So
+"drop off cube" should subsume the avoid obstacle behavior.
+
+## Quick Start Installation Guide
 
 SwarmBaseCode-ROS is designed and tested exclusively on the 64 bit version of Ubuntu 16.04 LTS (Xenial Xerus) and ROS Kinetic Kame. Other systems are untested and are therefore not supported at this time.
 
-##### 1. Install ROS Kinetic Kame
+#### 1. Install ROS Kinetic Kame
 
 Detailed instructions for installing ROS Kinetic Kame under Ubuntu 16.04 [here](http://wiki.ros.org/kinetic/Installation/Ubuntu) or follow the summarized instructions below:
 
@@ -89,7 +113,7 @@ Most systems will already have usb development support installed, but just in ca
  sudo apt install libusb-dev
 ```
 
-##### 2. Install additional ROS packages
+#### 2. Install additional ROS packages
 
 We use the [catkin_tools](https://catkin-tools.readthedocs.io/) package to build the SwarmBaseCode-ROS code base:
 
@@ -111,7 +135,7 @@ If you intend to use the rosbridge tools to run robots independently of the lapt
 sudo apt install ros-kinetic-rosbridge-server
 ```
 
-##### 3. Install additional Gazebo plugins
+#### 3. Install additional Gazebo plugins
 
 Our simulated Swarmies use existing Gazebo plugins, external to this repo, to replicate sonar, IMU, and GPS sensors. These plugins are contained in the [hector_gazebo_plugins](http://wiki.ros.org/hector_gazebo_plugins) package, which should be installed using the apt-get package management tool:
 
@@ -127,13 +151,13 @@ The Swarmies can receive commands from the thumb sticks on a Microsoft Xbox 360 
 
 Joystick commands can also be simulated using the direction keys (Up=I, Down=K, Left=J, Right=L) on the keyboard. The Rover GUI window must have focus for keyboard control to work.
 
-##### 4. Install git (if git is already installed, skip to step 5):
+#### 4. Install git (if git is already installed, skip to step 5):
 
 ```
 sudo apt install git
 ```
 
-##### 5. Install SwarmBaseCode-ROS
+#### 5. Install SwarmBaseCode-ROS
 
 1a. To update your existing repository using the base code (your competition repository name will have been provided to you):
 
@@ -143,7 +167,7 @@ git remote add SwarmBaseCode https://github.com/BCLab-UNM/SwarmBaseCode-ROS
 git pull SwarmBaseCode
 ```
 
-#### OR
+### OR
 
 If you just want a clean copy of the base code then:
 
@@ -180,7 +204,7 @@ If you just want a clean copy of the base code then:
   catkin build
   ```
     
-##### 6. Run the SwarmBaseCode-ROS simulation:
+#### 6. Run the SwarmBaseCode-ROS simulation:
 
 1. Change the permissions on the simulation run script to make it exectuatable (assuming you use the target directory name SwarmBaseCode-ROS):
   
@@ -277,7 +301,7 @@ This section displays important status information:
 
 To close the simulation and the GUI, click the red exit button in the top left-hand corner.
 
-### Software Documentation
+## Software Documentation
 
 Source code for SwarmBaseCode-ROS can be found in the repository /src directory. This diretory contains severals subdirectories, each of which contain a single ROS package. Here we present a high-level description of each package.
 
@@ -287,7 +311,7 @@ Source code for SwarmBaseCode-ROS can be found in the repository /src directory.
 - ```target_detection```: An image processor that detects [AprilTag](https://april.eecs.umich.edu/wiki/index.php/AprilTags) fiducial markers in the onboard camera's video stream. This package receives images from the ```usbCamera``` class (for physical robots) or [gazebo_ros_camera](http://docs.ros.org/kinetic/api/gazebo_plugins/html/classgazebo_1_1GazeboRosCamera.html) (for simulated robots), and, if an AprilTag is detected in the image, returns the integer value encoded in the tag.
 - ```ublox```: A serial interface to the ublox GPS receiver onboard the physical robot. This package is installed as a git submodule in the SwarmBaseCode-ROS repo. See the [ublox ROS wiki page](http://wiki.ros.org/ublox) for more information.
 
-### How to use Qt Creator to edit the GUI
+## How to use Qt Creator to edit the GUI
 
 Steps that are crossed out below show how the procedure has changed for QT Creator 3.5.1 which is installed with QT 5.
 
@@ -342,7 +366,7 @@ Qt Creator can now be used to build your git repository.
 
 Note: start qtcreator in your terminal with your git repository as the current directory. Source the ~/.bashrc if the catkin environment variables are not set so that QT Creator can properly build the project.
 
-### Debugging with GDB and Qt Creator
+## Debugging with GDB and Qt Creator
 
 Debuggers are particularly useful for tracking down segfaults and for tracing through the logic of your programs. In order to use the GNU debugger (GDB) with the swarmathon competition add the following line to the CMakelists.txt file for the project you want to debug.
 
@@ -358,7 +382,7 @@ Since ROS is multithreaded you may need to attach the debugger to threads that h
 
 To use QT Creator to debug your already running program click the "Debug" menu. Choose "Start Debugging" and then "Attach to Running Application...". You will be able to use the graphical interface to GDB from here. 
 
-### Using the deploy.sh script
+## Using the deploy.sh script
 
 The "deploy.sh" script has been added to allow for rapid and easy development for physical teams and judges alike! This script is found in the SwarmBaseCode-ROS/misc folder and automates several key tasks for the user! Now connecting to swarmies takes seconds.
 
@@ -406,7 +430,7 @@ Typing "REBOOT {hostname}" in any option will allow you to reboot the selected r
 
 Running multiple commands at once is allowed. So typing in a line such as "rover1 rover2 REBOOT rover3" will work.
 
-### NOTES FOR DEPLOY.SH SCRIPT:  Applying Keys
+## NOTES FOR DEPLOY.SH SCRIPT:  Applying Keys
 
 This script runs better when using ssh-keys.  Keys allow you to SSH without requiring the user to type in a password every time.
 
@@ -419,154 +443,3 @@ Once the key has been setup, copy the key from the users machine to each rover y
 ```ssh-copy-id swarmie@{hostname}``` where hostname is the rover's hostname
 
 That's it! You should now have a seamless way to SSH without having to type in passwords each time!
-
-## Behaviours
-
-This section provides an overview of the behaviours package. We
-describe the overall architecture of the package and a few pitfalls
-you may encounter when writing your own behaviours. The behaviours
-package is designed to separate the logic of individual behaviours
-from the details of implementing them on ROS (ie. the messages that
-are actually published). This allows for the possibility of easily
-porting the behavior to a different system without significantly
-rewriting the code. The interface between the abstract behaviours and
-ROS is handled by ROSAdapter which is responsible for sending and
-receiving all ROS messages.
-
-The architecture of the behaviours package is hierarchical, with the
-`ROSAdapter` at the top of the hierarchy. The ROSAdapter interacts
-with the `LogicController` which in turn manages all the individual
-controllers that implement specific behaviours.
-
-### Controller
-
-An abstract class that all controllers implement. The swarmies are
-structured as a collection of low level controllers that each perform
-a simple task such as deciding where to go next when searching
-(`SearchController`), or determining whether to turn left or right to
-avoid an obstacle (`ObstacleController`). These low-level behaviours,
-implemented as simple controllers are combined by the logic controller
-into the high-level foraging behavior of the swarmies. To add a new
-behavior to the swarmies you would write a new controller and
-integrate it in to the logic controller through the priority system
-described below.
-
-#### Controller API
-
-* `void Reset()`
-
-  Resets the internal state of the controller.
-
-* `Result DoWork()`
-
-  Determines what action should be taken by the behaviour and returns
-  that action in a `Result` struct. Note that no action is taken in
-  this method, we just determine what needs to be done and pass it
-  back to be executed by the `ROSAdapter`.
-
-* `bool ShouldInterrupt()`
-
-  If the internal state of the controller is such that it must take
-  action this method should return true.
-
-* `bool HasWork()`
-
-  If the controller has work to do (ie. needs to take action in some
-  way) then this method should return true.
-
-* `void ProcessData()`
-
-  Carries out behaviour-specific processing of internal data (or data
-  that has been passed in to the controller such as robot location or
-  other sensor readings).
-
-### ROSAdapter
-
-The main role of `ROSAdapter` is to manage sensor input, passing
-relevant data coming from ROS messages to the logic controller (which
-in turn may pass that data on to individual controllers). ROSAdapter
-calls `LogicController::DoWork()` ten times per second and takes
-action based on the `Result` returned by that call. Taking action
-typically means sending a message that will cause the wheels or
-gripper to move. The easiest way to trigger some other action is to
-have the ROSAdapter poll the logic controller at regular intervals to
-check whether some event has occurred (a good example of this is
-checking whether a manual waypoint has been reached).
-
-### Logic Controller
-
-The logic controller manages all the other controllers in the
-behaviours package. There are two finite state machines at its core,
-one for the logic state and one for the process state
-
-The logic state state-machine has three states
-* INTERRUPT
-* WAITING
-* PRECISION_COMMAND
-
-The interrupt state is entered whenever one of the controllers has
-signaled that it has work to do. In the interrupt state the logic
-controller polls all controllers to determine which ones have work and
-calls `DoWork()` on the controller with highest priority (priority is
-determined by the current process state of the logic controller,
-discussed below). The next logic state is determined by the result
-returned by that controller. The other two states are relatively
-simple. The waiting is used when waiting for the drive controller to
-reach its last waypoint (note that the drive controller is not part of
-the priority system described above, rather it is called directly
-whenever the logic state is waiting). The precision state is used when
-a controller wants to take direct control of the robot's
-actuators. In this state the result from the highest priority
-controller is passed directly to the drive controller do be acted on.
-This allows for very high precision driving to perform tasks such as
-aligning with a cube when picking it up.
-
-The process state state-machine determines the priorities of the
-controllers. There are four states:
-* SEARCHING
-* TARGET_PICKUP
-* DROP_OFF
-* MANUAL
-
-The states searching, target\_pickup, and drop\_off are entered when
-searching for cubes, picking up cubes, and dropping off cubes
-respectively. Under each state the priority of the controllers
-changes. Check `LogicController::ProcessData()` to see the priorities
-(higher is higher priority, -1 is disabled). The manual state is a
-special state that is unreachable while the robot is in autonomous
-mode. The only active controller in the manual state is the manual
-waypoint controller.
-
-One more important function in the logic controller is
-`LogicController::controllerInterconnect()` which can be used to share
-data between controllers.
-
-The remaining functions on `LogicController` are use to pass data from
-the `ROSAdapter` to the relevant controllers.
-
-### List of Controllers
-
-* `DriveController` Tells the robot how to drive. Driving is typically
-  based on waypoints and controlled with a PID controller that
-  directs the motors based on the current error in the robot's
-  orientation and position. The drive controller can also accept
-  precision commands that bypass the PID.
-* `DropOffController` Handles dropping off a cube at the center once
-  one has been picked up.
-* `ManualWaypointController` Implemented for testing. Allows us to
-  instruct the swarmie to drive to a particular (x,y) coordinate. Only
-  operates in manual mode.
-* `ObstacleController` Handles obstacle avoidance.
-* `PickUpController` Handles picking up a cube.
-* `RangeController` Prevents the swarmie from leaving a pre-defined
-  foraging range.
-* `SearchController` Implements a correlated random walk as a basic
-  search method.
-  
-### PID
-
-The PID class implements a generic proportional-integral-derivative
-controller that is configured using the `PIDConfig` struct. This
-struct is used to set the gains and the anti-windup parameters of the
-PID. The PID parameters can be tuned by modifying the config structs
-in the drive controller.
